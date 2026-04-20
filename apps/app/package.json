@@ -1,0 +1,32 @@
+{
+	"name": "@vandale/images-app",
+	"private": true,
+	"version": "0.0.1",
+	"type": "module",
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "vite preview"
+	},
+	"dependencies": {
+		"@tanstack/nitro-v2-vite-plugin": "^1.132.31",
+		"@tanstack/react-router": "^1.132.0",
+		"@tanstack/react-start": "^1.132.0",
+		"@tanstack/router-plugin": "^1.132.0",
+		"@tailwindcss/vite": "^4.0.6",
+		"@vandale/halftone": "workspace:*",
+		"lucide-react": "^0.544.0",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0",
+		"tailwindcss": "^4.0.6",
+		"vite-tsconfig-paths": "^5.1.4"
+	},
+	"devDependencies": {
+		"@types/node": "^22",
+		"@types/react": "^19.0.8",
+		"@types/react-dom": "^19.0.3",
+		"@vitejs/plugin-react": "^5.0.4",
+		"typescript": "^5.7.2",
+		"vite": "^7.1.7"
+	}
+}

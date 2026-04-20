@@ -1,0 +1,6 @@
+{
+	"buildCommand": "bun run build:pkg && bun run --cwd apps/app build",
+	"outputDirectory": "apps/app/.vercel/output",
+	"installCommand": "bun install",
+	"framework": null
+}

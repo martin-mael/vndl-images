@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+@theme {
+	--color-ink-950: #080812;
+	--color-ink-900: #0e0e1a;
+	--color-ink-800: #141426;
+	--color-ink-700: #1c1c32;
+	--color-ink-600: #252540;
+	--color-ink-400: #4b4b78;
+	--color-ink-300: #6b6b98;
+	--color-ink-200: #9898c0;
+	--color-ink-100: #c8c8e0;
+	--color-ink-50: #eeeef8;
+
+	--color-accent: #39a2ff;
+	--color-accent-hover: #5db5ff;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	height: 100%;
+	margin: 0;
+}
+
+#root {
+	height: 100%;
+}
