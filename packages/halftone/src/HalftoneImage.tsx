@@ -1,4 +1,5 @@
 import { forwardRef, useCallback, useEffect, useRef } from "react";
+import HalftoneWorker from "./halftone.worker?worker&inline";
 
 // ─── IDB persistence ────────────────────────────────────────────────────────
 
@@ -199,9 +200,7 @@ export const HalftoneImage = forwardRef<HTMLCanvasElement, HalftoneImageProps>(
 				offCtx.drawImage(img, 0, 0, w, h);
 				const pixels = offCtx.getImageData(0, 0, w, h).data;
 
-				worker = new Worker(new URL("./halftone.worker.ts", import.meta.url), {
-					type: "module",
-				});
+				worker = new HalftoneWorker();
 
 				worker.onmessage = ({ data: out }: MessageEvent<Uint8ClampedArray>) => {
 					memCache.set(key, out);
