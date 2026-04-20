@@ -53,9 +53,9 @@ export function Editor() {
   const resetReady = useCallback(() => setIsReady(false), []);
 
   return (
-    <div className="flex h-full bg-ink-950 text-ink-50 font-mono">
-      {/* Sidebar */}
-      <aside className="flex w-72 shrink-0 flex-col gap-6 border-r border-ink-700 p-5 overflow-y-auto">
+    <div className="flex h-dvh flex-col md:flex-row overflow-hidden bg-ink-950 text-ink-50 font-mono">
+      {/* Sidebar — below preview on mobile, left column on desktop */}
+      <aside className="order-last md:order-first flex flex-1 md:flex-none md:w-72 md:shrink-0 flex-col gap-4 md:gap-6 border-t border-ink-700 md:border-t-0 md:border-r p-4 md:p-5 overflow-y-auto">
         <header>
           <span className="text-xs text-ink-300 tracking-widest uppercase">
             Vandale Radio Images
@@ -163,7 +163,7 @@ export function Editor() {
           />
         </section>
 
-        <div className="mt-auto">
+        <div className="sticky bottom-0 -mx-4 px-4 pb-4 pt-2 bg-ink-950 md:static md:mx-0 md:px-0 md:pb-0 md:pt-0 mt-auto">
           <button
             type="button"
             disabled={!src || !isReady}
@@ -176,8 +176,8 @@ export function Editor() {
         </div>
       </aside>
 
-      {/* Preview */}
-      <main className="flex flex-1 items-center justify-center overflow-hidden p-6">
+      {/* Preview — top on mobile, right column on desktop */}
+      <main className="order-first md:order-last flex items-center justify-center overflow-hidden p-4 md:p-6 h-[45vh] md:h-auto md:flex-1">
         {src ? (
           <HalftoneImage
             ref={canvasRef}
@@ -187,6 +187,7 @@ export function Editor() {
             cellW={cellW}
             cellH={cellH}
             gamma={gamma}
+            outputWidth={2160}
             onReady={() => setIsReady(true)}
             className="max-h-full max-w-full object-contain"
           />

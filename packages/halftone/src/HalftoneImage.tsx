@@ -100,6 +100,8 @@ export interface HalftoneImageProps {
 	cellH?: number;
 	gamma?: number;
 	onReady?: () => void;
+	/** Fix the render width in px, overriding the viewport-based calculation. */
+	outputWidth?: number;
 }
 
 export const HalftoneImage = forwardRef<HTMLCanvasElement, HalftoneImageProps>(
@@ -114,6 +116,7 @@ export const HalftoneImage = forwardRef<HTMLCanvasElement, HalftoneImageProps>(
 			cellH = 8,
 			gamma = 0.8,
 			onReady,
+			outputWidth,
 		},
 		forwardedRef,
 	) {
@@ -163,7 +166,8 @@ export const HalftoneImage = forwardRef<HTMLCanvasElement, HalftoneImageProps>(
 				if (aborted) return;
 
 				const dpr = window.devicePixelRatio ?? 1;
-				const renderW = canvas.clientWidth > 0 ? canvas.clientWidth * dpr : 1920;
+				const renderW =
+					outputWidth ?? (canvas.clientWidth > 0 ? canvas.clientWidth * dpr : 1920);
 				const scale = Math.min(1, renderW / img.naturalWidth);
 				const w = Math.max(1, Math.round(img.naturalWidth * scale));
 				const h = Math.max(1, Math.round(img.naturalHeight * scale));
@@ -219,7 +223,7 @@ export const HalftoneImage = forwardRef<HTMLCanvasElement, HalftoneImageProps>(
 				aborted = true;
 				worker?.terminate();
 			};
-		}, [src, darkColor, lightColor, crossOrigin, cellW, cellH, gamma]);
+		}, [src, darkColor, lightColor, crossOrigin, cellW, cellH, gamma, outputWidth]);
 
 		return <canvas ref={setRef} className={className} />;
 	},
