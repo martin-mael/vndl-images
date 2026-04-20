@@ -56,11 +56,10 @@ export function Editor() {
     <div className="flex h-full bg-ink-950 text-ink-50 font-mono">
       {/* Sidebar */}
       <aside className="flex w-72 shrink-0 flex-col gap-6 border-r border-ink-700 p-5 overflow-y-auto">
-        <header className="flex items-center justify-between">
+        <header>
           <span className="text-xs text-ink-300 tracking-widest uppercase">
-            Halftone Studio
+            Vandale Radio Images
           </span>
-          <span className="text-xs text-accent">Vandale</span>
         </header>
 
         {/* Upload */}
