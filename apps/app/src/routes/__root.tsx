@@ -1,4 +1,4 @@
-import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router";
+import { HeadContent, Link, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
 
@@ -12,10 +12,45 @@ export const Route = createRootRoute({
 		links: [
 			{ rel: "stylesheet", href: appCss },
 			{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+			{ rel: "preconnect", href: "https://fonts.googleapis.com" },
+			{ rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+			{
+				rel: "stylesheet",
+				href: "https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,900;1,900&display=swap",
+			},
 		],
 	}),
+	component: RootLayout,
 	shellComponent: RootDocument,
 });
+
+function RootLayout() {
+	return (
+		<div className="flex h-dvh flex-col bg-ink-950 text-ink-50 font-mono">
+			<nav className="flex shrink-0 items-center gap-1 border-b border-ink-700 px-4 py-2 text-xs uppercase tracking-widest">
+				<span className="mr-3 text-ink-300">Vandale</span>
+				<Link
+					to="/"
+					className="rounded px-2 py-1 text-ink-300 hover:text-ink-50"
+					activeProps={{ className: "rounded px-2 py-1 text-ink-50 bg-ink-800" }}
+					activeOptions={{ exact: true }}
+				>
+					Simple
+				</Link>
+				<Link
+					to="/poster"
+					className="rounded px-2 py-1 text-ink-300 hover:text-ink-50"
+					activeProps={{ className: "rounded px-2 py-1 text-ink-50 bg-ink-800" }}
+				>
+					Poster
+				</Link>
+			</nav>
+			<div className="min-h-0 flex-1">
+				<Outlet />
+			</div>
+		</div>
+	);
+}
 
 function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
