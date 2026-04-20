@@ -10,6 +10,7 @@ export function Editor() {
   const [cellW, setCellW] = useState(16);
   const [cellH, setCellH] = useState(8);
   const [gamma, setGamma] = useState(0.8);
+  const [rotation, setRotation] = useState(45);
   const [isReady, setIsReady] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -162,6 +163,18 @@ export function Editor() {
               resetReady();
             }}
           />
+          <Slider
+            label="Rotation"
+            value={rotation}
+            min={0}
+            max={360}
+            step={1}
+            format={(v) => `${v}°`}
+            onChange={(v) => {
+              setRotation(v);
+              resetReady();
+            }}
+          />
         </section>
 
         <div className="sticky bottom-0 -mx-4 px-4 pb-4 pt-2 bg-ink-950 md:static md:mx-0 md:px-0 md:pb-0 md:pt-0 mt-auto">
@@ -190,6 +203,7 @@ export function Editor() {
               cellH={cellH}
               gamma={gamma}
               outputWidth={2160}
+              rotation={rotation}
               onReady={() => setIsReady(true)}
               className="max-h-full max-w-full object-contain"
             />

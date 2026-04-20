@@ -1,5 +1,3 @@
-const SQRT1_2 = Math.SQRT1_2;
-
 interface Input {
 	pixels: Uint8ClampedArray;
 	w: number;
@@ -13,11 +11,15 @@ interface Input {
 	cellW: number;
 	cellH: number;
 	gamma: number;
+	rotation: number;
 }
 
 onmessage = ({ data }: MessageEvent<Input>) => {
-	const { pixels, w, h, dr, dg, db, lr, lg, lb, cellW, cellH, gamma } = data;
+	const { pixels, w, h, dr, dg, db, lr, lg, lb, cellW, cellH, gamma, rotation } = data;
 	const out = new Uint8ClampedArray(w * h * 4);
+	const theta = (rotation * Math.PI) / 180;
+	const cosA = Math.cos(theta);
+	const sinA = Math.sin(theta);
 
 	for (let y = 0; y < h; y++) {
 		for (let x = 0; x < w; x++) {
@@ -28,8 +30,8 @@ onmessage = ({ data }: MessageEvent<Input>) => {
 					0.0722 * pixels[i + 2]) /
 				255;
 			g **= gamma;
-			const u = (x + y) * SQRT1_2;
-			const v = (-x + y) * SQRT1_2;
+			const u = x * cosA + y * sinA;
+			const v = -x * sinA + y * cosA;
 			const cellCol = Math.floor(u / cellW);
 			const stagger = (((cellCol % 2) + 2) % 2) * (cellH / 2);
 			const uPhase = (((u % cellW) + cellW) % cellW) / cellW;

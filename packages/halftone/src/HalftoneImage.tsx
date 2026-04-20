@@ -85,8 +85,9 @@ function cacheKey(
 	cellW: number,
 	cellH: number,
 	gamma: number,
+	rotation: number,
 ): string {
-	return `${src}|${w}x${h}|${dark}|${light}|${cellW}|${cellH}|${gamma}`;
+	return `${src}|${w}x${h}|${dark}|${light}|${cellW}|${cellH}|${gamma}|${rotation}`;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -103,6 +104,8 @@ export interface HalftoneImageProps {
 	onReady?: () => void;
 	/** Fix the render width in px, overriding the viewport-based calculation. */
 	outputWidth?: number;
+	/** Rotation of the halftone grid in degrees. Default 45. */
+	rotation?: number;
 }
 
 export const HalftoneImage = forwardRef<HTMLCanvasElement, HalftoneImageProps>(
@@ -118,6 +121,7 @@ export const HalftoneImage = forwardRef<HTMLCanvasElement, HalftoneImageProps>(
 			gamma = 0.8,
 			onReady,
 			outputWidth,
+			rotation = 45,
 		},
 		forwardedRef,
 	) {
@@ -178,7 +182,7 @@ export const HalftoneImage = forwardRef<HTMLCanvasElement, HalftoneImageProps>(
 				ctx.fillStyle = `rgb(${dr} ${dg} ${db})`;
 				ctx.fillRect(0, 0, w, h);
 
-				const key = cacheKey(src, w, h, resolvedDark, resolvedLight, cellW, cellH, gamma);
+				const key = cacheKey(src, w, h, resolvedDark, resolvedLight, cellW, cellH, gamma, rotation);
 
 				const mem = memCache.get(key);
 				if (mem) {
@@ -211,7 +215,7 @@ export const HalftoneImage = forwardRef<HTMLCanvasElement, HalftoneImageProps>(
 				};
 
 				worker.postMessage(
-					{ pixels, w, h, dr, dg, db, lr, lg, lb, cellW, cellH, gamma },
+					{ pixels, w, h, dr, dg, db, lr, lg, lb, cellW, cellH, gamma, rotation },
 					[pixels.buffer],
 				);
 			};
@@ -222,7 +226,7 @@ export const HalftoneImage = forwardRef<HTMLCanvasElement, HalftoneImageProps>(
 				aborted = true;
 				worker?.terminate();
 			};
-		}, [src, darkColor, lightColor, crossOrigin, cellW, cellH, gamma, outputWidth]);
+		}, [src, darkColor, lightColor, crossOrigin, cellW, cellH, gamma, outputWidth, rotation]);
 
 		return <canvas ref={setRef} className={className} />;
 	},
