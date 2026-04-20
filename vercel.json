@@ -1,5 +1,5 @@
 {
-	"buildCommand": "bun run --filter '@vandale/halftone' build && bun run --filter '@vandale/images-app' build",
+	"buildCommand": "bun run build:prod",
 	"installCommand": "bun install",
 	"framework": null
 }

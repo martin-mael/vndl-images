@@ -6,6 +6,7 @@
 		"dev": "bun run --cwd apps/app dev",
 		"build": "bun run --cwd packages/halftone build && bun run --cwd apps/app build",
 		"build:pkg": "bun run --cwd packages/halftone build",
+		"build:prod": "bun run --cwd packages/halftone build && bun run --cwd apps/app db:migrate:ci && bun run --cwd apps/app build",
 		"check": "biome check ."
 	},
 	"devDependencies": {
