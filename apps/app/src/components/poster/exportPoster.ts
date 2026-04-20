@@ -132,6 +132,10 @@ export type ExportArgs = {
 	backgroundCanvas: HTMLCanvasElement | null;
 	frameCanvas: HTMLCanvasElement | null;
 	textBlockCanvas: HTMLCanvasElement | null;
+	/** Solid fill used behind the whole poster when no background image is uploaded. */
+	backgroundFill: string;
+	/** Solid fill used inside the text block when no text-block image is uploaded. */
+	textBlockFill: string;
 	logoUrl: string;
 	title: string;
 	issue: string;
@@ -153,8 +157,8 @@ export async function renderPoster(canvas: HTMLCanvasElement, args: ExportArgs) 
 
 	const { colors } = args;
 
-	// 1. Solid poster background
-	ctx.fillStyle = colors.posterBackground;
+	// 1. Solid poster background (only visible if no background halftone)
+	ctx.fillStyle = args.backgroundFill;
 	ctx.fillRect(0, 0, POSTER_W, POSTER_H);
 
 	// 2. Background halftone
@@ -236,7 +240,7 @@ export async function renderPoster(canvas: HTMLCanvasElement, args: ExportArgs) 
 		);
 		ctx.restore();
 	} else {
-		ctx.fillStyle = colors.posterBackground;
+		ctx.fillStyle = args.textBlockFill;
 		ctx.fillRect(box.x, box.y, box.w, box.h);
 	}
 
@@ -260,7 +264,7 @@ export async function renderPoster(canvas: HTMLCanvasElement, args: ExportArgs) 
 	}
 	ctx.textBaseline = "alphabetic";
 
-	// 8. Logo — plain, untreated, centered below text block
+	// 8. Logo — tinted with colors.logoColor, centered below text block
 	try {
 		const logoImg = await loadSvg(args.logoUrl);
 		const nat = {
@@ -276,30 +280,45 @@ export async function renderPoster(canvas: HTMLCanvasElement, args: ExportArgs) 
 		}
 		const dx = LAYOUT.logo.xCenter - w / 2;
 		const dy = LAYOUT.logo.yTop;
-		ctx.drawImage(logoImg, dx, dy, w, h);
+		// Tint: draw SVG to an offscreen canvas, then source-in fill with the chosen color.
+		const off = document.createElement("canvas");
+		off.width = Math.ceil(w);
+		off.height = Math.ceil(h);
+		const offCtx = off.getContext("2d");
+		if (offCtx) {
+			offCtx.drawImage(logoImg, 0, 0, w, h);
+			offCtx.globalCompositeOperation = "source-in";
+			offCtx.fillStyle = colors.logoColor;
+			offCtx.fillRect(0, 0, off.width, off.height);
+			ctx.drawImage(off, dx, dy);
+		} else {
+			ctx.drawImage(logoImg, dx, dy, w, h);
+		}
 	} catch {
 		// ignore
 	}
 }
 
-export async function downloadPoster(args: ExportArgs) {
+export async function renderPosterToBlob(args: ExportArgs): Promise<Blob | null> {
 	const canvas = document.createElement("canvas");
 	await renderPoster(canvas, args);
-	await new Promise<void>((resolve) => {
-		canvas.toBlob((blob) => {
-			if (!blob) {
-				resolve();
-				return;
-			}
-			const url = URL.createObjectURL(blob);
-			const a = document.createElement("a");
-			a.download = "poster.png";
-			a.href = url;
-			a.click();
-			setTimeout(() => {
-				URL.revokeObjectURL(url);
-				resolve();
-			}, 1000);
-		}, "image/png");
+	return new Promise<Blob | null>((resolve) => {
+		canvas.toBlob((blob) => resolve(blob), "image/png");
 	});
+}
+
+export function triggerDownload(blob: Blob, filename = "poster.png") {
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement("a");
+	a.download = filename;
+	a.href = url;
+	a.click();
+	setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export async function downloadPoster(args: ExportArgs) {
+	const blob = await renderPosterToBlob(args);
+	if (!blob) return null;
+	triggerDownload(blob);
+	return blob;
 }

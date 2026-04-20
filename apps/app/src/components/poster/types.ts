@@ -13,9 +13,9 @@ export type ImageSlot = {
 };
 
 export type PosterColors = {
-	posterBackground: string;
 	textColor: string;
 	arrowColor: string;
+	logoColor: string;
 };
 
 export const POSTER_W = 1080;

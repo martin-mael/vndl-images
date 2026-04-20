@@ -8,7 +8,7 @@ export function ColorPicker({
 	onChange: (v: string) => void;
 }) {
 	return (
-		<label className="flex flex-1 cursor-pointer flex-col items-center gap-1.5">
+		<label className="relative flex flex-1 cursor-pointer flex-col items-center gap-1.5">
 			<div
 				className="h-8 w-full rounded border border-ink-600 transition-colors"
 				style={{ backgroundColor: value }}
@@ -18,7 +18,8 @@ export function ColorPicker({
 				type="color"
 				value={value}
 				onChange={(e) => onChange(e.target.value)}
-				className="sr-only"
+				aria-label={label}
+				className="absolute left-0 top-0 h-8 w-full cursor-pointer opacity-0"
 			/>
 		</label>
 	);

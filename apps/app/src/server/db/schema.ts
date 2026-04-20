@@ -55,8 +55,25 @@ export const verification = sqliteTable("verification", {
 
 // ─── App tables ────────────────────────────────────────────────────────────
 
+export const projects = sqliteTable("projects", {
+	id: text("id").primaryKey(),
+	name: text("name").notNull(),
+	createdById: text("createdById")
+		.notNull()
+		.references(() => user.id),
+	createdAt: integer("createdAt", { mode: "timestamp" })
+		.notNull()
+		.default(sql`(unixepoch())`),
+	updatedAt: integer("updatedAt", { mode: "timestamp" })
+		.notNull()
+		.default(sql`(unixepoch())`),
+});
+
 export const storyTemplates = sqliteTable("story_templates", {
 	id: text("id").primaryKey(),
+	projectId: text("projectId")
+		.notNull()
+		.references(() => projects.id, { onDelete: "cascade" }),
 	name: text("name").notNull(),
 	state: text("state").notNull(), // JSON of PosterState
 	createdById: text("createdById")
@@ -85,7 +102,9 @@ export const simpleStates = sqliteTable("simple_states", {
 
 export const exports = sqliteTable("exports", {
 	id: text("id").primaryKey(),
-	source: text("source", { enum: ["simple", "story"] }).notNull(),
+	projectId: text("projectId")
+		.notNull()
+		.references(() => projects.id, { onDelete: "cascade" }),
 	templateId: text("templateId").references(() => storyTemplates.id, {
 		onDelete: "set null",
 	}),
@@ -100,6 +119,7 @@ export const exports = sqliteTable("exports", {
 });
 
 export type User = typeof user.$inferSelect;
+export type Project = typeof projects.$inferSelect;
 export type StoryTemplate = typeof storyTemplates.$inferSelect;
 export type SimpleStateRow = typeof simpleStates.$inferSelect;
 export type ExportRow = typeof exports.$inferSelect;

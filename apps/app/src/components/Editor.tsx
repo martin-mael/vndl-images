@@ -1,29 +1,47 @@
 import { HalftoneImage } from "@vandale/halftone";
-import { Download, ImageIcon } from "lucide-react";
+import { Download, ImageIcon, Loader2 } from "lucide-react";
 import { ZoomableView } from "./ZoomableView";
 import { useCallback, useRef, useState } from "react";
+import { getRouteApi } from "@tanstack/react-router";
 import { ColorPicker } from "./ui/ColorPicker";
 import { Slider } from "./ui/Slider";
 import { ImageDrop } from "./ui/ImageDrop";
+import { uploadImage } from "@/lib/upload";
+import { useDebouncedEffect } from "@/lib/debounce";
+import { saveSimpleState, type SimpleState } from "@/server/fn/simpleState";
+
+const route = getRouteApi("/");
 
 export function Editor() {
-	const [src, setSrc] = useState<string | null>(null);
-	const [darkColor, setDarkColor] = useState("#082463");
-	const [lightColor, setLightColor] = useState("#39a2ff");
-	const [cellW, setCellW] = useState(16);
-	const [cellH, setCellH] = useState(8);
-	const [gamma, setGamma] = useState(0.8);
-	const [rotation, setRotation] = useState(45);
+	const initial = route.useLoaderData() as SimpleState;
+
+	const [src, setSrc] = useState<string | null>(initial.imageUrl);
+	const [darkColor, setDarkColor] = useState(initial.darkColor);
+	const [lightColor, setLightColor] = useState(initial.lightColor);
+	const [cellW, setCellW] = useState(initial.cellW);
+	const [cellH, setCellH] = useState(initial.cellH);
+	const [gamma, setGamma] = useState(initial.gamma);
+	const [rotation, setRotation] = useState(initial.rotation);
 	const [isReady, setIsReady] = useState(false);
+	const [uploading, setUploading] = useState(false);
+	const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 
-	const loadFile = useCallback((file: File) => {
-		setSrc((prev) => {
-			if (prev) URL.revokeObjectURL(prev);
-			return URL.createObjectURL(file);
-		});
-		setIsReady(false);
-	}, []);
+	const loadFile = useCallback(
+		async (file: File) => {
+			setUploading(true);
+			setIsReady(false);
+			try {
+				const url = await uploadImage(file, src);
+				setSrc(url);
+			} catch (e) {
+				console.error(e);
+			} finally {
+				setUploading(false);
+			}
+		},
+		[src],
+	);
 
 	const handleDownload = useCallback(() => {
 		const canvas = canvasRef.current;
@@ -36,15 +54,42 @@ export function Editor() {
 
 	const resetReady = useCallback(() => setIsReady(false), []);
 
+	useDebouncedEffect(
+		() => {
+			setSaveState("saving");
+			saveSimpleState({
+				data: {
+					imageUrl: src,
+					darkColor,
+					lightColor,
+					cellW,
+					cellH,
+					gamma,
+					rotation,
+				},
+			})
+				.then(() => setSaveState("saved"))
+				.catch(() => setSaveState("idle"));
+		},
+		[src, darkColor, lightColor, cellW, cellH, gamma, rotation],
+		500,
+	);
+
 	return (
 		<div className="flex h-full flex-col md:flex-row overflow-hidden">
-			<aside className="order-last md:order-first flex flex-1 md:flex-none md:w-72 md:shrink-0 flex-col gap-4 md:gap-6 border-t border-ink-700 md:border-t-0 md:border-r p-4 md:p-5 overflow-y-auto">
-				<header>
+			<aside className="order-last md:order-first flex flex-1 md:flex-none md:w-72 md:shrink-0 flex-col gap-4 md:gap-6 border-t border-ink-700 md:border-t-0 md:border-r p-4 md:p-5 overflow-y-auto overflow-x-hidden">
+				<header className="flex items-center justify-between">
 					<span className="text-xs text-ink-300 tracking-widest uppercase">Simple Halftone</span>
+					<SaveIndicator state={saveState} />
 				</header>
 
 				<section>
 					<ImageDrop hasImage={!!src} onFile={loadFile} />
+					{uploading ? (
+						<div className="mt-2 flex items-center gap-2 text-xs text-ink-300">
+							<Loader2 size={12} className="animate-spin" /> Uploading…
+						</div>
+					) : null}
 				</section>
 
 				<section className="flex flex-col gap-3">
@@ -140,6 +185,7 @@ export function Editor() {
 						<HalftoneImage
 							ref={canvasRef}
 							src={src}
+							crossOrigin="anonymous"
 							darkColor={darkColor}
 							lightColor={lightColor}
 							cellW={cellW}
@@ -161,5 +207,20 @@ export function Editor() {
 				)}
 			</main>
 		</div>
+	);
+}
+
+function SaveIndicator({ state }: { state: "idle" | "saving" | "saved" }) {
+	if (state === "idle") return null;
+	return (
+		<span className="flex items-center gap-1 text-[10px] normal-case text-ink-400">
+			{state === "saving" ? (
+				<>
+					<Loader2 size={10} className="animate-spin" /> Saving
+				</>
+			) : (
+				<>Saved</>
+			)}
+		</span>
 	);
 }

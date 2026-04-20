@@ -1,11 +1,21 @@
 import { HalftoneImage } from "@vandale/halftone";
-import { Download } from "lucide-react";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Download, Loader2 } from "lucide-react";
+import {
+	type ReactNode,
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import logoUrl from "@/assets/logo_vndl.svg?url";
+import { uploadImage } from "@/lib/upload";
+import { VndlLogo } from "./VndlLogo";
 import { ColorPicker } from "./ui/ColorPicker";
 import { Slider } from "./ui/Slider";
 import { ImageDrop } from "./ui/ImageDrop";
-import { downloadPoster } from "./poster/exportPoster";
+import { renderPosterToBlob, triggerDownload } from "./poster/exportPoster";
 import { LAYOUT, POSTER_H, POSTER_W } from "./poster/layout";
 import {
 	type HalftoneParams,
@@ -16,41 +26,75 @@ import {
 
 const FONT_FAMILY = '"Rubik", sans-serif';
 
+export type PosterState = {
+	background: ImageSlot;
+	frameImg: ImageSlot;
+	textBlockImg: ImageSlot;
+	title: string;
+	issue: string;
+	day: string;
+	timeStart: string;
+	timeEnd: string;
+	topText: string;
+	bottomText: string;
+	colors: PosterColors;
+};
+
 function makeSlot(dark: string, light: string, override: Partial<HalftoneParams> = {}): ImageSlot {
 	return { src: null, params: { ...defaultHalftone, ...override }, dark, light };
 }
 
-export function PosterEditor() {
-	const [background, setBackground] = useState<ImageSlot>(() =>
-		makeSlot("#0a1f2e", "#8be3c3"),
-	);
-	const [frameImg, setFrameImg] = useState<ImageSlot>(() =>
-		makeSlot("#0a1f2e", "#8be3c3"),
-	);
-	const [textBlockImg, setTextBlockImg] = useState<ImageSlot>(() =>
-		makeSlot("#0a1e1a", "#0a1e1a"),
-	);
+export function defaultPosterState(): PosterState {
+	return {
+		background: makeSlot("#0a1f2e", "#8be3c3"),
+		frameImg: makeSlot("#0a1f2e", "#8be3c3"),
+		textBlockImg: makeSlot("#0a1e1a", "#0a1e1a"),
+		title: "AQUAPLANING",
+		issue: "N°14",
+		day: "LUNDI",
+		timeStart: "20:00",
+		timeEnd: "22:30",
+		topText: "Environ 2h30 de pure nostalgie avec Maya ce soir.",
+		bottomText: "Musiques de jeux vidéos et souvenirs.",
+		colors: {
+			textColor: "#8be3c3",
+			arrowColor: "#8be3c3",
+			logoColor: "#000000",
+		},
+	};
+}
 
-	const [title, setTitle] = useState("AQUAPLANING");
-	const [issue, setIssue] = useState("N°14");
-	const [day, setDay] = useState("LUNDI");
-	const [timeStart, setTimeStart] = useState("20:00");
-	const [timeEnd, setTimeEnd] = useState("22:30");
-	const [topText, setTopText] = useState(
-		"Environ 2h30 de pure nostalgie avec Maya ce soir.",
-	);
-	const [bottomText, setBottomText] = useState(
-		"Musiques de jeux vidéos et souvenirs.",
-	);
-	const [colors, setColors] = useState<PosterColors>({
-		posterBackground: "#0a1f2e",
-		textColor: "#8be3c3",
-		arrowColor: "#8be3c3",
-	});
+export type PosterEditorProps = {
+	initialState?: PosterState;
+	onStateChange?: (state: PosterState) => void;
+	onAfterDownload?: (blob: Blob) => void | Promise<void>;
+	headerSlot?: ReactNode;
+};
+
+export function PosterEditor({
+	initialState,
+	onStateChange,
+	onAfterDownload,
+	headerSlot,
+}: PosterEditorProps = {}) {
+	const initial = useMemo(() => initialState ?? defaultPosterState(), [initialState]);
+
+	const [background, setBackground] = useState<ImageSlot>(initial.background);
+	const [frameImg, setFrameImg] = useState<ImageSlot>(initial.frameImg);
+	const [textBlockImg, setTextBlockImg] = useState<ImageSlot>(initial.textBlockImg);
+	const [title, setTitle] = useState(initial.title);
+	const [issue, setIssue] = useState(initial.issue);
+	const [day, setDay] = useState(initial.day);
+	const [timeStart, setTimeStart] = useState(initial.timeStart);
+	const [timeEnd, setTimeEnd] = useState(initial.timeEnd);
+	const [topText, setTopText] = useState(initial.topText);
+	const [bottomText, setBottomText] = useState(initial.bottomText);
+	const [colors, setColors] = useState<PosterColors>(initial.colors);
 
 	const [bgReady, setBgReady] = useState(false);
 	const [frameReady, setFrameReady] = useState(false);
 	const [textReady, setTextReady] = useState(false);
+	const [uploading, setUploading] = useState<Record<string, boolean>>({});
 	const bgCanvasRef = useRef<HTMLCanvasElement>(null);
 	const frameCanvasRef = useRef<HTMLCanvasElement>(null);
 	const textCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -71,26 +115,62 @@ export function PosterEditor() {
 		return () => ro.disconnect();
 	}, []);
 
-	const makeLoader = useCallback(
-		(setter: React.Dispatch<React.SetStateAction<ImageSlot>>, readySetter: (v: boolean) => void) =>
-			(file: File) => {
-				setter((prev) => {
-					if (prev.src) URL.revokeObjectURL(prev.src);
-					return { ...prev, src: URL.createObjectURL(file) };
-				});
-				readySetter(false);
-			},
+	// Emit state snapshot whenever anything changes (skip the first render).
+	const firstEmit = useRef(true);
+	useEffect(() => {
+		if (firstEmit.current) {
+			firstEmit.current = false;
+			return;
+		}
+		onStateChange?.({
+			background,
+			frameImg,
+			textBlockImg,
+			title,
+			issue,
+			day,
+			timeStart,
+			timeEnd,
+			topText,
+			bottomText,
+			colors,
+		});
+	}, [
+		background,
+		frameImg,
+		textBlockImg,
+		title,
+		issue,
+		day,
+		timeStart,
+		timeEnd,
+		topText,
+		bottomText,
+		colors,
+		onStateChange,
+	]);
+
+	const uploadForSlot = useCallback(
+		async (
+			slotKey: string,
+			setter: React.Dispatch<React.SetStateAction<ImageSlot>>,
+			readySetter: (v: boolean) => void,
+			file: File,
+			prevUrl: string | null,
+		) => {
+			setUploading((m) => ({ ...m, [slotKey]: true }));
+			readySetter(false);
+			try {
+				const url = await uploadImage(file, prevUrl);
+				setter((s) => ({ ...s, src: url }));
+			} catch (e) {
+				console.error(e);
+			} finally {
+				setUploading((m) => ({ ...m, [slotKey]: false }));
+			}
+		},
 		[],
 	);
-
-	useEffect(() => {
-		return () => {
-			if (background.src) URL.revokeObjectURL(background.src);
-			if (frameImg.src) URL.revokeObjectURL(frameImg.src);
-			if (textBlockImg.src) URL.revokeObjectURL(textBlockImg.src);
-		};
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
 
 	const makeParamUpdater =
 		(setter: React.Dispatch<React.SetStateAction<ImageSlot>>, readySetter: (v: boolean) => void) =>
@@ -106,55 +186,102 @@ export function PosterEditor() {
 			readySetter(false);
 		};
 
+	const [exportStatus, setExportStatus] = useState<
+		"idle" | "rendering" | "publishing" | "saving-export"
+	>("idle");
+	const anyUploading = Object.values(uploading).some(Boolean);
 	const canDownload =
+		!anyUploading &&
+		exportStatus === "idle" &&
 		(!background.src || bgReady) &&
 		(!frameImg.src || frameReady) &&
 		(!textBlockImg.src || textReady);
 
-	const handleDownload = () => {
-		downloadPoster({
-			backgroundCanvas: background.src ? bgCanvasRef.current : null,
-			frameCanvas: frameImg.src ? frameCanvasRef.current : null,
-			textBlockCanvas: textBlockImg.src ? textCanvasRef.current : null,
-			logoUrl,
-			title,
-			issue,
-			day,
-			timeStart,
-			timeEnd,
-			topText,
-			bottomText,
-			colors,
-		});
+	// Warn if the user tries to close the tab while exporting.
+	useEffect(() => {
+		if (exportStatus === "idle") return;
+		const onBeforeUnload = (e: BeforeUnloadEvent) => {
+			e.preventDefault();
+			e.returnValue = "";
+		};
+		window.addEventListener("beforeunload", onBeforeUnload);
+		return () => window.removeEventListener("beforeunload", onBeforeUnload);
+	}, [exportStatus]);
+
+	const handleDownload = async () => {
+		try {
+			setExportStatus("rendering");
+			const blob = await renderPosterToBlob({
+				backgroundCanvas: background.src ? bgCanvasRef.current : null,
+				frameCanvas: frameImg.src ? frameCanvasRef.current : null,
+				textBlockCanvas: textBlockImg.src ? textCanvasRef.current : null,
+				backgroundFill: background.dark,
+				textBlockFill: textBlockImg.dark,
+				logoUrl,
+				title,
+				issue,
+				day,
+				timeStart,
+				timeEnd,
+				topText,
+				bottomText,
+				colors,
+			});
+			if (!blob) {
+				setExportStatus("idle");
+				return;
+			}
+			// Upload+persist FIRST so the user can't quit mid-flight and skip saving
+			// the gallery copy. Only once that's guaranteed do we trigger the download.
+			if (onAfterDownload) {
+				setExportStatus("publishing");
+				try {
+					await onAfterDownload(blob);
+				} catch (e) {
+					console.error(e);
+					alert("Failed to publish the export. Your download will still proceed.");
+				}
+			}
+			triggerDownload(blob);
+		} finally {
+			setExportStatus("idle");
+		}
 	};
 
 	return (
 		<div className="flex h-full flex-col md:flex-row overflow-hidden">
 			<aside className="order-last md:order-first flex flex-1 md:flex-none md:w-80 md:shrink-0 flex-col gap-5 border-t border-ink-700 md:border-t-0 md:border-r p-4 md:p-5 overflow-y-auto overflow-x-hidden">
-				<header>
-					<span className="text-xs text-ink-300 tracking-widest uppercase">
-						Story Composer
-					</span>
-				</header>
+				{headerSlot ?? (
+					<header>
+						<span className="text-xs text-ink-300 tracking-widest uppercase">
+							Story Composer
+						</span>
+					</header>
+				)}
 
 				<ImageSection
 					label="Background"
 					slot={background}
-					onFile={makeLoader(setBackground, setBgReady)}
+					uploading={!!uploading.bg}
+					onFile={(file) => uploadForSlot("bg", setBackground, setBgReady, file, background.src)}
 					onParam={makeParamUpdater(setBackground, setBgReady)}
 					onColor={makeColorUpdater(setBackground, setBgReady)}
 				/>
 				<ImageSection
 					label="Frame"
 					slot={frameImg}
-					onFile={makeLoader(setFrameImg, setFrameReady)}
+					uploading={!!uploading.frame}
+					onFile={(file) => uploadForSlot("frame", setFrameImg, setFrameReady, file, frameImg.src)}
 					onParam={makeParamUpdater(setFrameImg, setFrameReady)}
 					onColor={makeColorUpdater(setFrameImg, setFrameReady)}
 				/>
 				<ImageSection
 					label="Text block"
 					slot={textBlockImg}
-					onFile={makeLoader(setTextBlockImg, setTextReady)}
+					uploading={!!uploading.text}
+					onFile={(file) =>
+						uploadForSlot("text", setTextBlockImg, setTextReady, file, textBlockImg.src)
+					}
 					onParam={makeParamUpdater(setTextBlockImg, setTextReady)}
 					onColor={makeColorUpdater(setTextBlockImg, setTextReady)}
 				/>
@@ -181,15 +308,8 @@ export function PosterEditor() {
 				</section>
 
 				<section className="flex flex-col gap-3">
-					<span className="text-xs text-ink-300 uppercase tracking-widest">
-						Poster colors
-					</span>
+					<span className="text-xs text-ink-300 uppercase tracking-widest">Poster colors</span>
 					<div className="flex gap-3">
-						<ColorPicker
-							label="Fill"
-							value={colors.posterBackground}
-							onChange={(v) => setColors((c) => ({ ...c, posterBackground: v }))}
-						/>
 						<ColorPicker
 							label="Text"
 							value={colors.textColor}
@@ -199,6 +319,11 @@ export function PosterEditor() {
 							label="Arrow"
 							value={colors.arrowColor}
 							onChange={(v) => setColors((c) => ({ ...c, arrowColor: v }))}
+						/>
+						<ColorPicker
+							label="Logo"
+							value={colors.logoColor}
+							onChange={(v) => setColors((c) => ({ ...c, logoColor: v }))}
 						/>
 					</div>
 				</section>
@@ -210,9 +335,25 @@ export function PosterEditor() {
 						onClick={handleDownload}
 						className="flex w-full items-center justify-center gap-2 rounded bg-accent px-4 py-2.5 text-sm font-medium text-ink-950 transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-30"
 					>
-						<Download size={16} />
-						Download PNG
+						{exportStatus === "rendering" ? (
+							<>
+								<Loader2 size={16} className="animate-spin" /> Rendering…
+							</>
+						) : exportStatus === "publishing" ? (
+							<>
+								<Loader2 size={16} className="animate-spin" /> Publishing…
+							</>
+						) : (
+							<>
+								<Download size={16} /> Download PNG
+							</>
+						)}
 					</button>
+					{exportStatus === "publishing" ? (
+						<p className="mt-1 text-center text-[10px] text-ink-400">
+							Uploading to gallery — please keep this tab open.
+						</p>
+					) : null}
 				</div>
 			</aside>
 
@@ -257,12 +398,14 @@ export function PosterEditor() {
 function ImageSection({
 	label,
 	slot,
+	uploading,
 	onFile,
 	onParam,
 	onColor,
 }: {
 	label: string;
 	slot: ImageSlot;
+	uploading: boolean;
 	onFile: (file: File) => void;
 	onParam: <K extends keyof HalftoneParams>(k: K, v: HalftoneParams[K]) => void;
 	onColor: (key: "dark" | "light", v: string) => void;
@@ -270,6 +413,11 @@ function ImageSection({
 	return (
 		<section className="flex flex-col gap-3">
 			<ImageDrop label={label} hasImage={!!slot.src} onFile={onFile} compact />
+			{uploading ? (
+				<div className="flex items-center gap-2 text-xs text-ink-300">
+					<Loader2 size={12} className="animate-spin" /> Uploading…
+				</div>
+			) : null}
 			<div className="flex gap-3">
 				<ColorPicker label="Dark" value={slot.dark} onChange={(v) => onColor("dark", v)} />
 				<ColorPicker label="Light" value={slot.light} onChange={(v) => onColor("light", v)} />
@@ -407,7 +555,6 @@ function Poster({
 	const fr = LAYOUT.frame;
 	const centerX = tc.left + tc.width / 2;
 
-	// Arrow y bounds between times
 	const arrowTop = tc.yTop + tc.labelSize + tc.valueSize + 40;
 	const arrowBottom = tc.yBottom - tc.valueSize - 20;
 
@@ -417,7 +564,7 @@ function Poster({
 				position: "relative",
 				width: POSTER_W,
 				height: POSTER_H,
-				backgroundColor: colors.posterBackground,
+				backgroundColor: background.dark,
 				fontFamily: FONT_FAMILY,
 				fontWeight: 900,
 				fontStyle: "italic",
@@ -430,6 +577,7 @@ function Poster({
 					<HalftoneImage
 						ref={bgCanvasRef}
 						src={background.src}
+						crossOrigin="anonymous"
 						darkColor={background.dark}
 						lightColor={background.light}
 						cellW={background.params.cellW}
@@ -443,7 +591,6 @@ function Poster({
 				</div>
 			) : null}
 
-			{/* Title */}
 			<div
 				style={{
 					position: "absolute",
@@ -469,7 +616,6 @@ function Poster({
 				{issue.toUpperCase()}
 			</div>
 
-			{/* Frame halftone */}
 			<div
 				style={{
 					position: "absolute",
@@ -486,6 +632,7 @@ function Poster({
 					<HalftoneImage
 						ref={frameCanvasRef}
 						src={frameImg.src}
+						crossOrigin="anonymous"
 						darkColor={frameImg.dark}
 						lightColor={frameImg.light}
 						cellW={frameImg.params.cellW}
@@ -499,7 +646,6 @@ function Poster({
 				) : null}
 			</div>
 
-			{/* Time column — all centered on centerX */}
 			<div
 				style={{
 					position: "absolute",
@@ -526,7 +672,6 @@ function Poster({
 			>
 				{timeStart}
 			</div>
-			{/* Arrow line */}
 			<div
 				style={{
 					position: "absolute",
@@ -537,7 +682,6 @@ function Poster({
 					background: colors.arrowColor,
 				}}
 			/>
-			{/* Arrowhead */}
 			<div
 				style={{
 					position: "absolute",
@@ -563,7 +707,6 @@ function Poster({
 				{timeEnd}
 			</div>
 
-			{/* Text block halftone */}
 			<div
 				style={{
 					position: "absolute",
@@ -572,13 +715,14 @@ function Poster({
 					width: box.w,
 					height: box.h,
 					overflow: "hidden",
-					backgroundColor: colors.posterBackground,
+					backgroundColor: textBlockImg.dark,
 				}}
 			>
 				{textBlockImg.src ? (
 					<HalftoneImage
 						ref={textCanvasRef}
 						src={textBlockImg.src}
+						crossOrigin="anonymous"
 						darkColor={textBlockImg.dark}
 						lightColor={textBlockImg.light}
 						cellW={textBlockImg.params.cellW}
@@ -592,7 +736,6 @@ function Poster({
 				) : null}
 			</div>
 
-			{/* Text block content — top + bottom, space-between */}
 			<div
 				style={{
 					position: "absolute",
@@ -619,17 +762,14 @@ function Poster({
 				</div>
 			</div>
 
-			{/* Logo — plain SVG, centered below text block */}
-			<img
-				src={logoUrl}
-				alt=""
+			<VndlLogo
+				color={colors.logoColor}
 				style={{
 					position: "absolute",
 					left: LAYOUT.logo.xCenter - LAYOUT.logo.w / 2,
 					top: LAYOUT.logo.yTop,
 					width: LAYOUT.logo.w,
 					height: LAYOUT.logo.h,
-					objectFit: "contain",
 				}}
 			/>
 		</div>

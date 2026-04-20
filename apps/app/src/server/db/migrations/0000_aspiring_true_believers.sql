@@ -17,13 +17,23 @@ CREATE TABLE `account` (
 --> statement-breakpoint
 CREATE TABLE `exports` (
 	`id` text PRIMARY KEY NOT NULL,
-	`source` text NOT NULL,
+	`projectId` text NOT NULL,
 	`templateId` text,
 	`title` text NOT NULL,
 	`pngUrl` text NOT NULL,
 	`createdById` text NOT NULL,
 	`createdAt` integer DEFAULT (unixepoch()) NOT NULL,
+	FOREIGN KEY (`projectId`) REFERENCES `projects`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`templateId`) REFERENCES `story_templates`(`id`) ON UPDATE no action ON DELETE set null,
+	FOREIGN KEY (`createdById`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE TABLE `projects` (
+	`id` text PRIMARY KEY NOT NULL,
+	`name` text NOT NULL,
+	`createdById` text NOT NULL,
+	`createdAt` integer DEFAULT (unixepoch()) NOT NULL,
+	`updatedAt` integer DEFAULT (unixepoch()) NOT NULL,
 	FOREIGN KEY (`createdById`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
@@ -49,12 +59,14 @@ CREATE TABLE `simple_states` (
 --> statement-breakpoint
 CREATE TABLE `story_templates` (
 	`id` text PRIMARY KEY NOT NULL,
+	`projectId` text NOT NULL,
 	`name` text NOT NULL,
 	`state` text NOT NULL,
 	`createdById` text NOT NULL,
 	`createdAt` integer DEFAULT (unixepoch()) NOT NULL,
 	`updatedById` text NOT NULL,
 	`updatedAt` integer DEFAULT (unixepoch()) NOT NULL,
+	FOREIGN KEY (`projectId`) REFERENCES `projects`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`createdById`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`updatedById`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action
 );

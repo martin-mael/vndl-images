@@ -9,17 +9,15 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as StoryRouteImport } from './routes/story'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as StoryIndexRouteImport } from './routes/story.index'
+import { Route as ApiUploadRouteImport } from './routes/api.upload'
+import { Route as StoryProjectIdIndexRouteImport } from './routes/story.$projectId.index'
+import { Route as StoryProjectIdTemplateIdRouteImport } from './routes/story.$projectId.$templateId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api.auth.$'
 
-const StoryRoute = StoryRouteImport.update({
-  id: '/story',
-  path: '/story',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SignInRoute = SignInRouteImport.update({
   id: '/sign-in',
   path: '/sign-in',
@@ -35,6 +33,27 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StoryIndexRoute = StoryIndexRouteImport.update({
+  id: '/story/',
+  path: '/story/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiUploadRoute = ApiUploadRouteImport.update({
+  id: '/api/upload',
+  path: '/api/upload',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StoryProjectIdIndexRoute = StoryProjectIdIndexRouteImport.update({
+  id: '/story/$projectId/',
+  path: '/story/$projectId/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StoryProjectIdTemplateIdRoute =
+  StoryProjectIdTemplateIdRouteImport.update({
+    id: '/story/$projectId/$templateId',
+    path: '/story/$projectId/$templateId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -45,49 +64,79 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/gallery': typeof GalleryRoute
   '/sign-in': typeof SignInRoute
-  '/story': typeof StoryRoute
+  '/api/upload': typeof ApiUploadRoute
+  '/story/': typeof StoryIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/story/$projectId/$templateId': typeof StoryProjectIdTemplateIdRoute
+  '/story/$projectId/': typeof StoryProjectIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/gallery': typeof GalleryRoute
   '/sign-in': typeof SignInRoute
-  '/story': typeof StoryRoute
+  '/api/upload': typeof ApiUploadRoute
+  '/story': typeof StoryIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/story/$projectId/$templateId': typeof StoryProjectIdTemplateIdRoute
+  '/story/$projectId': typeof StoryProjectIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/gallery': typeof GalleryRoute
   '/sign-in': typeof SignInRoute
-  '/story': typeof StoryRoute
+  '/api/upload': typeof ApiUploadRoute
+  '/story/': typeof StoryIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/story/$projectId/$templateId': typeof StoryProjectIdTemplateIdRoute
+  '/story/$projectId/': typeof StoryProjectIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/gallery' | '/sign-in' | '/story' | '/api/auth/$'
+  fullPaths:
+    | '/'
+    | '/gallery'
+    | '/sign-in'
+    | '/api/upload'
+    | '/story/'
+    | '/api/auth/$'
+    | '/story/$projectId/$templateId'
+    | '/story/$projectId/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/gallery' | '/sign-in' | '/story' | '/api/auth/$'
-  id: '__root__' | '/' | '/gallery' | '/sign-in' | '/story' | '/api/auth/$'
+  to:
+    | '/'
+    | '/gallery'
+    | '/sign-in'
+    | '/api/upload'
+    | '/story'
+    | '/api/auth/$'
+    | '/story/$projectId/$templateId'
+    | '/story/$projectId'
+  id:
+    | '__root__'
+    | '/'
+    | '/gallery'
+    | '/sign-in'
+    | '/api/upload'
+    | '/story/'
+    | '/api/auth/$'
+    | '/story/$projectId/$templateId'
+    | '/story/$projectId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   GalleryRoute: typeof GalleryRoute
   SignInRoute: typeof SignInRoute
-  StoryRoute: typeof StoryRoute
+  ApiUploadRoute: typeof ApiUploadRoute
+  StoryIndexRoute: typeof StoryIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  StoryProjectIdTemplateIdRoute: typeof StoryProjectIdTemplateIdRoute
+  StoryProjectIdIndexRoute: typeof StoryProjectIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/story': {
-      id: '/story'
-      path: '/story'
-      fullPath: '/story'
-      preLoaderRoute: typeof StoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/sign-in': {
       id: '/sign-in'
       path: '/sign-in'
@@ -109,6 +158,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/story/': {
+      id: '/story/'
+      path: '/story'
+      fullPath: '/story/'
+      preLoaderRoute: typeof StoryIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/upload': {
+      id: '/api/upload'
+      path: '/api/upload'
+      fullPath: '/api/upload'
+      preLoaderRoute: typeof ApiUploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/story/$projectId/': {
+      id: '/story/$projectId/'
+      path: '/story/$projectId'
+      fullPath: '/story/$projectId/'
+      preLoaderRoute: typeof StoryProjectIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/story/$projectId/$templateId': {
+      id: '/story/$projectId/$templateId'
+      path: '/story/$projectId/$templateId'
+      fullPath: '/story/$projectId/$templateId'
+      preLoaderRoute: typeof StoryProjectIdTemplateIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -123,8 +200,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   GalleryRoute: GalleryRoute,
   SignInRoute: SignInRoute,
-  StoryRoute: StoryRoute,
+  ApiUploadRoute: ApiUploadRoute,
+  StoryIndexRoute: StoryIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  StoryProjectIdTemplateIdRoute: StoryProjectIdTemplateIdRoute,
+  StoryProjectIdIndexRoute: StoryProjectIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
