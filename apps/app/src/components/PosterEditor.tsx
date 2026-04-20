@@ -130,10 +130,10 @@ export function PosterEditor() {
 
 	return (
 		<div className="flex h-full flex-col md:flex-row overflow-hidden">
-			<aside className="order-last md:order-first flex flex-1 md:flex-none md:w-80 md:shrink-0 flex-col gap-5 border-t border-ink-700 md:border-t-0 md:border-r p-4 md:p-5 overflow-y-auto">
+			<aside className="order-last md:order-first flex flex-1 md:flex-none md:w-80 md:shrink-0 flex-col gap-5 border-t border-ink-700 md:border-t-0 md:border-r p-4 md:p-5 overflow-y-auto overflow-x-hidden">
 				<header>
 					<span className="text-xs text-ink-300 tracking-widest uppercase">
-						Poster Composer
+						Story Composer
 					</span>
 				</header>
 
@@ -331,13 +331,13 @@ function TextField({
 	onChange: (v: string) => void;
 }) {
 	return (
-		<label className="flex flex-1 flex-col gap-1">
+		<label className="flex min-w-0 flex-1 flex-col gap-1">
 			<span className="text-[10px] text-ink-400 uppercase tracking-widest">{label}</span>
 			<input
 				type="text"
 				value={value}
 				onChange={(e) => onChange(e.target.value)}
-				className="rounded border border-ink-600 bg-ink-900 px-2 py-1.5 text-sm text-ink-100 focus:border-accent focus:outline-none"
+				className="w-full min-w-0 rounded border border-ink-600 bg-ink-900 px-2 py-1.5 text-sm text-ink-100 focus:border-accent focus:outline-none"
 			/>
 		</label>
 	);

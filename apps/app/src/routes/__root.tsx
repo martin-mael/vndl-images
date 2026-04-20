@@ -38,11 +38,11 @@ function RootLayout() {
 					Simple
 				</Link>
 				<Link
-					to="/poster"
+					to="/story"
 					className="rounded px-2 py-1 text-ink-300 hover:text-ink-50"
 					activeProps={{ className: "rounded px-2 py-1 text-ink-50 bg-ink-800" }}
 				>
-					Poster
+					Stories
 				</Link>
 			</nav>
 			<div className="min-h-0 flex-1">
