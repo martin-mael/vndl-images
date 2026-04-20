@@ -1,6 +1,19 @@
-import { HeadContent, Link, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
+import {
+	HeadContent,
+	Link,
+	Outlet,
+	Scripts,
+	createRootRoute,
+	redirect,
+	useRouter,
+} from "@tanstack/react-router";
+import { LogOut } from "lucide-react";
 
 import appCss from "../styles.css?url";
+import { getServerSession } from "@/server/session";
+import { signOut, useSession } from "@/lib/auth-client";
+
+const PUBLIC_PATHS = new Set(["/sign-in"]);
 
 export const Route = createRootRoute({
 	head: () => ({
@@ -20,35 +33,81 @@ export const Route = createRootRoute({
 			},
 		],
 	}),
+	beforeLoad: async ({ location }) => {
+		if (PUBLIC_PATHS.has(location.pathname) || location.pathname.startsWith("/api/")) {
+			return { session: null };
+		}
+		const session = await getServerSession();
+		if (!session) {
+			throw redirect({ to: "/sign-in" });
+		}
+		return { session };
+	},
 	component: RootLayout,
 	shellComponent: RootDocument,
 });
 
 function RootLayout() {
+	const { session } = Route.useRouteContext();
 	return (
-		<div className="flex h-dvh flex-col bg-ink-950 text-ink-50 font-mono">
-			<nav className="flex shrink-0 items-center gap-1 border-b border-ink-700 px-4 py-2 text-xs uppercase tracking-widest">
-				<span className="mr-3 text-ink-300">Vandale</span>
-				<Link
-					to="/"
-					className="rounded px-2 py-1 text-ink-300 hover:text-ink-50"
-					activeProps={{ className: "rounded px-2 py-1 text-ink-50 bg-ink-800" }}
-					activeOptions={{ exact: true }}
-				>
-					Simple
-				</Link>
-				<Link
-					to="/story"
-					className="rounded px-2 py-1 text-ink-300 hover:text-ink-50"
-					activeProps={{ className: "rounded px-2 py-1 text-ink-50 bg-ink-800" }}
-				>
-					Stories
-				</Link>
-			</nav>
+		<div className="flex h-full flex-col bg-ink-950 text-ink-50 font-mono">
+			{session ? <TopNav /> : null}
 			<div className="min-h-0 flex-1">
 				<Outlet />
 			</div>
 		</div>
+	);
+}
+
+function TopNav() {
+	const { data: liveSession } = useSession();
+	const router = useRouter();
+
+	const handleSignOut = async () => {
+		await signOut();
+		router.invalidate();
+		router.navigate({ to: "/sign-in" });
+	};
+
+	return (
+		<nav className="flex shrink-0 items-center gap-1 border-b border-ink-700 px-4 py-2 text-xs uppercase tracking-widest">
+			<span className="mr-3 text-ink-300">Vandale</span>
+			<Link
+				to="/"
+				className="rounded px-2 py-1 text-ink-300 hover:text-ink-50"
+				activeProps={{ className: "rounded px-2 py-1 text-ink-50 bg-ink-800" }}
+				activeOptions={{ exact: true }}
+			>
+				Simple
+			</Link>
+			<Link
+				to="/story"
+				className="rounded px-2 py-1 text-ink-300 hover:text-ink-50"
+				activeProps={{ className: "rounded px-2 py-1 text-ink-50 bg-ink-800" }}
+			>
+				Stories
+			</Link>
+			<Link
+				to="/gallery"
+				className="rounded px-2 py-1 text-ink-300 hover:text-ink-50"
+				activeProps={{ className: "rounded px-2 py-1 text-ink-50 bg-ink-800" }}
+			>
+				Gallery
+			</Link>
+			<div className="ml-auto flex items-center gap-3">
+				<span className="normal-case text-ink-300">
+					{liveSession?.user.email ?? liveSession?.user.name ?? ""}
+				</span>
+				<button
+					type="button"
+					onClick={handleSignOut}
+					aria-label="Sign out"
+					className="flex items-center gap-1 rounded px-2 py-1 text-ink-400 hover:text-ink-100"
+				>
+					<LogOut size={12} />
+				</button>
+			</div>
+		</nav>
 	);
 }
 
