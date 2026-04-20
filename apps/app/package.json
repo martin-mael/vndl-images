@@ -6,6 +6,7 @@
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",
+		"build:prod": "bun run --cwd ../../packages/halftone build && bun run db:migrate:ci && bun run build",
 		"preview": "vite preview",
 		"db:generate": "bun --env-file=../../.env.local drizzle-kit generate",
 		"db:migrate": "bun --env-file=../../.env.local drizzle-kit migrate",
