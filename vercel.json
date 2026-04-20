@@ -1,6 +1,5 @@
 {
-	"buildCommand": "bun run build:pkg && bun run --cwd apps/app build",
-	"outputDirectory": "apps/app/.vercel/output",
+	"buildCommand": "bun run --filter '@vandale/halftone' build && bun run --filter '@vandale/images-app' build",
 	"installCommand": "bun install",
 	"framework": null
 }
