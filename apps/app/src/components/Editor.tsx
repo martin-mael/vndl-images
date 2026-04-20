@@ -1,5 +1,6 @@
 import { HalftoneImage } from "@vandale/halftone";
 import { Download, ImageIcon, Upload } from "lucide-react";
+import { ZoomableView } from "./ZoomableView";
 import { useCallback, useRef, useState } from "react";
 
 export function Editor() {
@@ -177,24 +178,28 @@ export function Editor() {
       </aside>
 
       {/* Preview — top on mobile, right column on desktop */}
-      <main className="order-first md:order-last flex items-center justify-center overflow-hidden p-4 md:p-6 h-[45vh] md:h-auto md:flex-1">
+      <main className="order-first md:order-last h-[45vh] md:h-auto md:flex-1">
         {src ? (
-          <HalftoneImage
-            ref={canvasRef}
-            src={src}
-            darkColor={darkColor}
-            lightColor={lightColor}
-            cellW={cellW}
-            cellH={cellH}
-            gamma={gamma}
-            outputWidth={2160}
-            onReady={() => setIsReady(true)}
-            className="max-h-full max-w-full object-contain"
-          />
+          <ZoomableView className="h-full w-full">
+            <HalftoneImage
+              ref={canvasRef}
+              src={src}
+              darkColor={darkColor}
+              lightColor={lightColor}
+              cellW={cellW}
+              cellH={cellH}
+              gamma={gamma}
+              outputWidth={2160}
+              onReady={() => setIsReady(true)}
+              className="max-h-full max-w-full object-contain"
+            />
+          </ZoomableView>
         ) : (
-          <div className="flex flex-col items-center gap-3 text-ink-600">
-            <ImageIcon size={48} strokeWidth={1} />
-            <span className="text-sm">Upload an image to get started</span>
+          <div className="flex h-full items-center justify-center p-4 md:p-6">
+            <div className="flex flex-col items-center gap-3 text-ink-600">
+              <ImageIcon size={48} strokeWidth={1} />
+              <span className="text-sm">Upload an image to get started</span>
+            </div>
           </div>
         )}
       </main>
