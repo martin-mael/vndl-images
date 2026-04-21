@@ -67,8 +67,12 @@ function TemplateEditorPage() {
 					state: latest.current.state,
 				},
 			});
-			queryClient.invalidateQueries({ queryKey: ["template", template.id] });
-			queryClient.invalidateQueries({ queryKey: ["templates", projectId] });
+			// Local state is the source of truth during editing; mark the list
+			// stale so the next /story/$projectId visit refetches updatedAt order.
+			queryClient.invalidateQueries({
+				queryKey: ["templates", projectId],
+				refetchType: "none",
+			});
 			setSaveStatus("saved");
 		} catch (e) {
 			console.error(e);
