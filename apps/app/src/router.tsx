@@ -5,6 +5,8 @@ export const getRouter = () =>
 	createRouter({
 		routeTree,
 		defaultPreload: "intent",
+		defaultPreloadStaleTime: 30_000,
+		defaultStaleTime: 10_000,
 		defaultNotFoundComponent: NotFound,
 	});
 

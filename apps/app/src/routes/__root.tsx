@@ -37,6 +37,11 @@ export const Route = createRootRoute({
 		if (PUBLIC_PATHS.has(location.pathname) || location.pathname.startsWith("/api/")) {
 			return { session: null };
 		}
+		// Only hit the server during SSR. On client-side navigation we trust the
+		// cookie (server fns will 401 on expiry, and useSession() refreshes live).
+		if (typeof window !== "undefined") {
+			return { session: undefined };
+		}
 		const session = await getServerSession();
 		if (!session) {
 			throw redirect({ to: "/sign-in" });
@@ -48,10 +53,12 @@ export const Route = createRootRoute({
 });
 
 function RootLayout() {
-	const { session } = Route.useRouteContext();
+	const { session: ssrSession } = Route.useRouteContext();
+	const { data: liveSession } = useSession();
+	const showNav = ssrSession !== null || !!liveSession;
 	return (
 		<div className="flex h-full flex-col bg-ink-950 text-ink-50 font-mono">
-			{session ? <TopNav /> : null}
+			{showNav ? <TopNav /> : null}
 			<div className="min-h-0 flex-1">
 				<Outlet />
 			</div>
