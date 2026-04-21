@@ -12,6 +12,7 @@ import {
 import logoUrl from "@/assets/logo_vndl.svg?url";
 import { uploadImage } from "@/lib/upload";
 import { VndlLogo } from "./VndlLogo";
+import { ZoomableView } from "./ZoomableView";
 import { ColorPicker } from "./ui/ColorPicker";
 import { Slider } from "./ui/Slider";
 import { ImageDrop } from "./ui/ImageDrop";
@@ -359,37 +360,39 @@ export function PosterEditor({
 
 			<main
 				ref={previewWrapRef}
-				className="order-first md:order-last h-[50vh] md:h-auto md:flex-1 flex items-center justify-center overflow-hidden p-4"
+				className="order-first md:order-last h-[50vh] md:h-auto md:flex-1 overflow-hidden p-4"
 			>
-				<div
-					style={{
-						width: POSTER_W,
-						height: POSTER_H,
-						transform: `scale(${scale})`,
-						transformOrigin: "center",
-						flexShrink: 0,
-					}}
-				>
-					<Poster
-						background={background}
-						frameImg={frameImg}
-						textBlockImg={textBlockImg}
-						title={title}
-						issue={issue}
-						day={day}
-						timeStart={timeStart}
-						timeEnd={timeEnd}
-						topText={topText}
-						bottomText={bottomText}
-						colors={colors}
-						bgCanvasRef={bgCanvasRef}
-						frameCanvasRef={frameCanvasRef}
-						textCanvasRef={textCanvasRef}
-						onBgReady={() => setBgReady(true)}
-						onFrameReady={() => setFrameReady(true)}
-						onTextReady={() => setTextReady(true)}
-					/>
-				</div>
+				<ZoomableView className="h-full w-full">
+					<div
+						style={{
+							width: POSTER_W,
+							height: POSTER_H,
+							transform: `scale(${scale})`,
+							transformOrigin: "center",
+							flexShrink: 0,
+						}}
+					>
+						<Poster
+							background={background}
+							frameImg={frameImg}
+							textBlockImg={textBlockImg}
+							title={title}
+							issue={issue}
+							day={day}
+							timeStart={timeStart}
+							timeEnd={timeEnd}
+							topText={topText}
+							bottomText={bottomText}
+							colors={colors}
+							bgCanvasRef={bgCanvasRef}
+							frameCanvasRef={frameCanvasRef}
+							textCanvasRef={textCanvasRef}
+							onBgReady={() => setBgReady(true)}
+							onFrameReady={() => setFrameReady(true)}
+							onTextReady={() => setTextReady(true)}
+						/>
+					</div>
+				</ZoomableView>
 			</main>
 		</div>
 	);
