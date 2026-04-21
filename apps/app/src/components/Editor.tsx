@@ -1,19 +1,19 @@
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { HalftoneImage } from "@vandale/halftone";
 import { Download, ImageIcon, Loader2 } from "lucide-react";
 import { ZoomableView } from "./ZoomableView";
 import { useCallback, useRef, useState } from "react";
-import { getRouteApi } from "@tanstack/react-router";
 import { ColorPicker } from "./ui/ColorPicker";
 import { Slider } from "./ui/Slider";
 import { ImageDrop } from "./ui/ImageDrop";
 import { uploadImage } from "@/lib/upload";
 import { useDebouncedEffect } from "@/lib/debounce";
-import { saveSimpleState, type SimpleState } from "@/server/fn/simpleState";
-
-const route = getRouteApi("/");
+import { simpleStateQueryOptions } from "@/lib/queries";
+import { saveSimpleState } from "@/server/fn/simpleState";
 
 export function Editor() {
-	const initial = route.useLoaderData() as SimpleState;
+	const { data: initial } = useSuspenseQuery(simpleStateQueryOptions());
+	const queryClient = useQueryClient();
 
 	const [src, setSrc] = useState<string | null>(initial.imageUrl);
 	const [darkColor, setDarkColor] = useState(initial.darkColor);
@@ -56,19 +56,21 @@ export function Editor() {
 
 	useDebouncedEffect(
 		() => {
+			const nextState = {
+				imageUrl: src,
+				darkColor,
+				lightColor,
+				cellW,
+				cellH,
+				gamma,
+				rotation,
+			};
 			setSaveState("saving");
-			saveSimpleState({
-				data: {
-					imageUrl: src,
-					darkColor,
-					lightColor,
-					cellW,
-					cellH,
-					gamma,
-					rotation,
-				},
-			})
-				.then(() => setSaveState("saved"))
+			saveSimpleState({ data: nextState })
+				.then(() => {
+					queryClient.setQueryData(simpleStateQueryOptions().queryKey, nextState);
+					setSaveState("saved");
+				})
 				.catch(() => setSaveState("idle"));
 		},
 		[src, darkColor, lightColor, cellW, cellH, gamma, rotation],

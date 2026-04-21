@@ -1,17 +1,19 @@
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Download, Loader2, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useSession } from "@/lib/auth-client";
-import { deleteExport, listExports } from "@/server/fn/exports";
+import { exportsQueryOptions } from "@/lib/queries";
+import { deleteExport, type listExports } from "@/server/fn/exports";
 
 export const Route = createFileRoute("/gallery")({
 	component: GalleryPage,
-	loader: () => listExports({ data: {} }),
+	loader: ({ context }) => context.queryClient.ensureQueryData(exportsQueryOptions()),
 });
 
 function GalleryPage() {
-	const exports = Route.useLoaderData();
-	const router = useRouter();
+	const { data: exports } = useSuspenseQuery(exportsQueryOptions());
+	const queryClient = useQueryClient();
 	const { data: session } = useSession();
 
 	const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -20,7 +22,7 @@ function GalleryPage() {
 		setDeletingId(id);
 		try {
 			await deleteExport({ data: { id } });
-			await router.invalidate();
+			await queryClient.invalidateQueries({ queryKey: ["exports"] });
 		} finally {
 			setDeletingId(null);
 		}

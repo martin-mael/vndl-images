@@ -1,29 +1,27 @@
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { defaultPosterState } from "@/components/PosterEditor";
-import { getProject, renameProject } from "@/server/fn/projects";
-import {
-	createTemplate,
-	deleteTemplate,
-	listTemplates,
-	renameTemplate,
-} from "@/server/fn/templates";
+import { projectQueryOptions, templatesQueryOptions } from "@/lib/queries";
+import { renameProject } from "@/server/fn/projects";
+import { createTemplate, deleteTemplate, renameTemplate } from "@/server/fn/templates";
 
 export const Route = createFileRoute("/story/$projectId/")({
 	component: TemplatesPage,
-	loader: async ({ params }) => {
-		const [project, templates] = await Promise.all([
-			getProject({ data: { id: params.projectId } }),
-			listTemplates({ data: { projectId: params.projectId } }),
+	loader: async ({ params, context }) => {
+		await Promise.all([
+			context.queryClient.ensureQueryData(projectQueryOptions(params.projectId)),
+			context.queryClient.ensureQueryData(templatesQueryOptions(params.projectId)),
 		]);
-		return { project, templates };
 	},
 });
 
 function TemplatesPage() {
-	const { project, templates } = Route.useLoaderData();
 	const { projectId } = Route.useParams();
+	const { data: project } = useSuspenseQuery(projectQueryOptions(projectId));
+	const { data: templates } = useSuspenseQuery(templatesQueryOptions(projectId));
+	const queryClient = useQueryClient();
 	const router = useRouter();
 	const [creating, setCreating] = useState(false);
 	const [newName, setNewName] = useState("");
@@ -36,6 +34,9 @@ function TemplatesPage() {
 		return <div className="p-6 text-sm text-ink-300">Project not found.</div>;
 	}
 
+	const invalidateTemplates = () =>
+		queryClient.invalidateQueries({ queryKey: ["templates", projectId] });
+
 	const handleCreate = async () => {
 		if (!newName.trim()) return;
 		const { id } = await createTemplate({
@@ -47,6 +48,7 @@ function TemplatesPage() {
 		});
 		setNewName("");
 		setCreating(false);
+		await invalidateTemplates();
 		router.navigate({
 			to: "/story/$projectId/$templateId",
 			params: { projectId, templateId: id },
@@ -56,7 +58,7 @@ function TemplatesPage() {
 	const handleDelete = async (id: string) => {
 		if (!confirm("Delete this template?")) return;
 		await deleteTemplate({ data: { id } });
-		router.invalidate();
+		await invalidateTemplates();
 	};
 
 	const startRenameTemplate = (id: string, currentName: string) => {
@@ -69,7 +71,8 @@ function TemplatesPage() {
 		setEditingTemplateId(null);
 		if (!next || next === currentName) return;
 		await renameTemplate({ data: { id, name: next } });
-		router.invalidate();
+		await invalidateTemplates();
+		await queryClient.invalidateQueries({ queryKey: ["template", id] });
 	};
 
 	const cancelRenameTemplate = () => {
@@ -87,7 +90,8 @@ function TemplatesPage() {
 		setEditingProject(false);
 		if (!next || next === project.name) return;
 		await renameProject({ data: { id: projectId, name: next } });
-		router.invalidate();
+		await queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+		await queryClient.invalidateQueries({ queryKey: ["projects"] });
 	};
 
 	const cancelRenameProject = () => {

@@ -1,9 +1,10 @@
+import type { QueryClient } from "@tanstack/react-query";
 import {
 	HeadContent,
 	Link,
 	Outlet,
 	Scripts,
-	createRootRoute,
+	createRootRouteWithContext,
 	redirect,
 	useRouter,
 } from "@tanstack/react-router";
@@ -15,7 +16,7 @@ import { signOut, useSession } from "@/lib/auth-client";
 
 const PUBLIC_PATHS = new Set(["/sign-in"]);
 
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
 	head: () => ({
 		meta: [
 			{ charSet: "utf-8" },

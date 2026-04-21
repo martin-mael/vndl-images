@@ -1,3 +1,4 @@
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { ChevronLeft, Loader2, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -7,29 +8,29 @@ import {
 	defaultPosterState,
 } from "@/components/PosterEditor";
 import { uploadPng } from "@/lib/upload";
+import { projectQueryOptions, templateQueryOptions } from "@/lib/queries";
 import { createExport } from "@/server/fn/exports";
-import { getProject } from "@/server/fn/projects";
 import {
 	deleteTemplate,
-	getTemplate,
 	parseTemplateState,
 	saveTemplate,
 } from "@/server/fn/templates";
 
 export const Route = createFileRoute("/story/$projectId/$templateId")({
 	component: TemplateEditorPage,
-	loader: async ({ params }) => {
-		const [template, project] = await Promise.all([
-			getTemplate({ data: { id: params.templateId } }),
-			getProject({ data: { id: params.projectId } }),
+	loader: async ({ params, context }) => {
+		await Promise.all([
+			context.queryClient.ensureQueryData(templateQueryOptions(params.templateId)),
+			context.queryClient.ensureQueryData(projectQueryOptions(params.projectId)),
 		]);
-		return { template, project };
 	},
 });
 
 function TemplateEditorPage() {
-	const { template, project } = Route.useLoaderData();
-	const { projectId } = Route.useParams();
+	const { projectId, templateId } = Route.useParams();
+	const { data: template } = useSuspenseQuery(templateQueryOptions(templateId));
+	const { data: project } = useSuspenseQuery(projectQueryOptions(projectId));
+	const queryClient = useQueryClient();
 	const router = useRouter();
 
 	if (!template || !project) {
@@ -66,12 +67,14 @@ function TemplateEditorPage() {
 					state: latest.current.state,
 				},
 			});
+			queryClient.invalidateQueries({ queryKey: ["template", template.id] });
+			queryClient.invalidateQueries({ queryKey: ["templates", projectId] });
 			setSaveStatus("saved");
 		} catch (e) {
 			console.error(e);
 			setSaveStatus("idle");
 		}
-	}, [template.id]);
+	}, [template.id, projectId, queryClient]);
 
 	const scheduleSave = useCallback(() => {
 		if (timer.current) clearTimeout(timer.current);
@@ -103,8 +106,9 @@ function TemplateEditorPage() {
 					pngUrl,
 				},
 			});
+			await queryClient.invalidateQueries({ queryKey: ["exports"] });
 		},
-		[projectId, template.id],
+		[projectId, template.id, queryClient],
 	);
 
 	const handleRename = (v: string) => {
@@ -116,6 +120,7 @@ function TemplateEditorPage() {
 	const handleDelete = async () => {
 		if (!confirm("Delete this template?")) return;
 		await deleteTemplate({ data: { id: template.id } });
+		await queryClient.invalidateQueries({ queryKey: ["templates", projectId] });
 		router.navigate({ to: "/story/$projectId", params: { projectId } });
 	};
 

@@ -1,20 +1,18 @@
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import {
-	createProject,
-	deleteProject,
-	listProjects,
-	renameProject,
-} from "@/server/fn/projects";
+import { projectsQueryOptions } from "@/lib/queries";
+import { createProject, deleteProject, renameProject } from "@/server/fn/projects";
 
 export const Route = createFileRoute("/story/")({
 	component: ProjectsPage,
-	loader: () => listProjects(),
+	loader: ({ context }) => context.queryClient.ensureQueryData(projectsQueryOptions()),
 });
 
 function ProjectsPage() {
-	const projects = Route.useLoaderData();
+	const { data: projects } = useSuspenseQuery(projectsQueryOptions());
+	const queryClient = useQueryClient();
 	const router = useRouter();
 	const [creating, setCreating] = useState(false);
 	const [newName, setNewName] = useState("");
@@ -26,13 +24,14 @@ function ProjectsPage() {
 		const { id } = await createProject({ data: { name: newName.trim() } });
 		setNewName("");
 		setCreating(false);
+		await queryClient.invalidateQueries({ queryKey: ["projects"] });
 		router.navigate({ to: "/story/$projectId", params: { projectId: id } });
 	};
 
 	const handleDelete = async (id: string) => {
 		if (!confirm("Delete this project? Templates and exports will be gone.")) return;
 		await deleteProject({ data: { id } });
-		router.invalidate();
+		await queryClient.invalidateQueries({ queryKey: ["projects"] });
 	};
 
 	const startRename = (id: string, currentName: string) => {
@@ -45,7 +44,8 @@ function ProjectsPage() {
 		setEditingId(null);
 		if (!next || next === currentName) return;
 		await renameProject({ data: { id, name: next } });
-		router.invalidate();
+		await queryClient.invalidateQueries({ queryKey: ["projects"] });
+		await queryClient.invalidateQueries({ queryKey: ["project", id] });
 	};
 
 	const cancelRename = () => {
